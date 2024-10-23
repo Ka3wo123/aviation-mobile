@@ -5,6 +5,8 @@ import HomeScreen from './app/components/HomeScreen';
 import MapScreen from './app/components/AirportsMapScreen';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import FlightForm from './app/components/FlightForm';
+import LoginScreen from './app/components/LoginScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,7 +21,26 @@ export default function App() {
             <Icon name="home" color={color} size={size} />
           ),
         }} />
-        <Tab.Screen name="Airports Map" component={MapScreen} />
+        <Tab.Screen name="Airports Map" component={MapScreen} options={{
+          headerShown: false,
+          tabBarLabel: 'Airports map',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="map" color={color} size={size} />
+          )
+        }} />
+        <Tab.Screen name="Flight search" component={FlightForm} options={{
+          headerShown: false,
+          tabBarLabel: 'Flight search',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="search" color={color} size={size} />
+          )
+        }} />
+        <Tab.Screen name="Login" component={LoginScreen} options={{
+          tabBarLabel: 'Login',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="lock" color={color} size={size} />
+          )
+        }}/>
       </Tab.Navigator>
     </NavigationContainer>
   );
