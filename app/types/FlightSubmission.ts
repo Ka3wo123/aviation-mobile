@@ -8,4 +8,4 @@ export default interface FlightSubmission {
     departureGate: string,
     arrivalTerminal: string,
     arrivalGate: string
-}
+};

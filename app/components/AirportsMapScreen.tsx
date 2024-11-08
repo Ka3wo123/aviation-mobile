@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { SafeAreaView, TouchableOpacity, Text, Modal, View, TextInput, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { SafeAreaView, TouchableOpacity, Text, Modal, View, TextInput, StyleSheet, ScrollView, ActivityIndicator, ToastAndroid, Dimensions } from "react-native";
+import MapView, { Marker, Region } from "react-native-maps";
 import axios from "axios";
 import Airport from "../types/Airport";
 import { DrawerLayoutAndroid } from 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BE_FLIGHT_HOST } from '@env';
 import FlighData from "../types/FlightData";
+import Geolocation from '@react-native-community/geolocation';
+import { useNavigation } from "@react-navigation/native";
+
+
+const { width, height } = Dimensions.get('window');
 
 export default function MapScreen() {
+    const navigation = useNavigation();
     const [airports, setAirports] = useState<Airport[]>([]);
     const [filteredAirports, setFilteredAirports] = useState<Airport[]>([]);
     const [selectedAirport, setSelectedAirport] = useState<Airport | null>(null);
@@ -18,9 +24,29 @@ export default function MapScreen() {
     const [arrivals, setArrivals] = useState<FlighData[]>([]);
     const [departures, setDepartures] = useState<FlighData[]>([]);
     const [dataType, setDataType] = useState<'arrivals' | 'departures' | null>(null);
-    const [loading, setLoading] = useState(false); // New loading state
+    const [userLocation, setUserLocation] = useState<Region | null>(null);
 
     useEffect(() => {
+
+        Geolocation.getCurrentPosition(
+            position => {
+                const { latitude, longitude } = position.coords;
+                setUserLocation({ latitude, longitude, latitudeDelta: 0.1, longitudeDelta: 0.1 });
+            },
+            error => {
+                if (error.code === 1) {
+                    console.log("Location permission denied. Please enable location services for the app.");
+                } else if (error.code === 2) {
+                    console.log("Location unavailable. Please check if location services are enabled.");
+                } else if (error.code === 3) {
+                    console.log("Location request timed out.");
+                } else {
+                    console.error("Location error:", error);
+                }
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        );
+
         const fetchAirports = async () => {
             try {
                 const response = await axios.get(`${BE_FLIGHT_HOST}/api/flight-data/airports`);
@@ -38,15 +64,12 @@ export default function MapScreen() {
         setSelectedAirport(airport);
 
         try {
-            setLoading(true);
             const responseArrivals = await axios.get(`${BE_FLIGHT_HOST}/api/flight-data/arrivals/${airport.iataCode}`);
             const responseDepartures = await axios.get(`${BE_FLIGHT_HOST}/api/flight-data/departures/${airport.iataCode}`);
             setArrivals(responseArrivals.data);
             setDepartures(responseDepartures.data);
         } catch (error) {
             console.error(error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -62,6 +85,12 @@ export default function MapScreen() {
     useEffect(() => {
         filterAirports();
     }, [searchText, searchCountry]);
+
+    const handleDepartureClick = (flightData: FlighData) => {
+        // @ts-ignore
+        navigation.navigate('Flight search', { flightData: flightData });
+
+    };
 
     const renderDrawerContent = () => (
         <View style={styles.drawerContent}>
@@ -93,13 +122,14 @@ export default function MapScreen() {
                         onPress={() => setSelectedAirport(null)}
                         showsUserLocation
                         style={styles.map}
-                        initialRegion={{
-                            latitude: 37.7749,
-                            longitude: -122.4194,
-                            latitudeDelta: 10,
-                            longitudeDelta: 10,
+                        initialRegion={userLocation || {
+                            latitude: 0,
+                            longitude: 0,
+                            latitudeDelta: 20,
+                            longitudeDelta: 20,
                         }}
                     >
+
                         {filteredAirports.map((airport) => (
                             <Marker
                                 key={airport.id}
@@ -142,7 +172,10 @@ export default function MapScreen() {
                     >
                         <View style={styles.modalContainer}>
                             {selectedAirport && (
-                                <View style={styles.modalContent}>
+                                <View style={[styles.modalContent, {
+                                    width: width - 40,
+                                    height: height - 80
+                                }]}>
                                     <Text style={styles.modalTitle}>{selectedAirport.airportName}</Text>
                                     <Text style={{ color: 'black' }}>Country: {selectedAirport.countryName}</Text>
                                     <Text style={{ color: 'black' }}>City: {selectedAirport.cityName ? selectedAirport.cityName : "N/A"}</Text>
@@ -152,12 +185,10 @@ export default function MapScreen() {
                                         {dataType === 'arrivals' ? 'Arrivals:' : 'Departures:'}
                                     </Text>
                                     <ScrollView style={styles.arrivalsList}>
-                                        {loading ? (
-                                            <ActivityIndicator size="large" color="#0055ff" />
-                                        ) : dataType === 'arrivals' ? (
+                                        {dataType === 'arrivals' ? (
                                             arrivals.length > 0 ? (
                                                 arrivals.map((arrival, index) => (
-                                                    <View key={index} style={styles.arrivalItem}>
+                                                    <View key={index} style={styles.flightItem}>
                                                         <Text style={styles.arrivalText}>Airline: {arrival.airline.name}</Text>
                                                         <Text style={styles.arrivalText}>From: {arrival.departure.airport}</Text>
                                                         <Text style={styles.arrivalText}>Scheduled: {arrival.flightDate}</Text>
@@ -170,12 +201,14 @@ export default function MapScreen() {
                                         ) : (
                                             departures.length > 0 ? (
                                                 departures.map((departure, index) => (
-                                                    <View key={index} style={styles.arrivalItem}>
-                                                        <Text style={styles.arrivalText}>Flight: {departure.airline.name}</Text>
-                                                        <Text style={styles.arrivalText}>To: {departure.arrival.airport}</Text>
-                                                        <Text style={styles.arrivalText}>Scheduled: {departure.flightDate}</Text>
-                                                        <Text style={styles.arrivalText}>Status: {departure.flightStatus}</Text>
-                                                    </View>
+                                                    <TouchableOpacity onPress={() => handleDepartureClick(departure)}>
+                                                        <View key={index} style={styles.flightItem}>
+                                                            <Text style={styles.arrivalText}>Flight: {departure.airline.name}</Text>
+                                                            <Text style={styles.arrivalText}>To: {departure.arrival.airport}</Text>
+                                                            <Text style={styles.arrivalText}>Scheduled: {departure.flightDate}</Text>
+                                                            <Text style={styles.arrivalText}>Status: {departure.flightStatus}</Text>
+                                                        </View>
+                                                    </TouchableOpacity>
                                                 ))
                                             ) : (
                                                 <Text style={styles.noArrivalsText}>No departures available</Text>
@@ -256,7 +289,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         padding: 20,
         borderRadius: 10,
-        width: '80%',
         alignItems: 'center',
     },
     modalTitle: {
@@ -271,10 +303,9 @@ const styles = StyleSheet.create({
         marginVertical: 10,
     },
     arrivalsList: {
-        maxHeight: 200,
-        width: '100%',
+        width: '100%'
     },
-    arrivalItem: {
+    flightItem: {
         marginVertical: 5,
         padding: 10,
         borderBottomWidth: 1,
@@ -296,5 +327,20 @@ const styles = StyleSheet.create({
     closeButtonText: {
         color: 'white',
         fontWeight: 'bold',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 10,
+        color: '#0055ff',
+    },
+    loadingIndicator: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: [{ translateX: -50 }, { translateY: -50 }],
     },
 });

@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, ScrollView, ToastAndroid } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, Button, StyleSheet, ScrollView, ToastAndroid, TouchableOpacity, TextInput } from 'react-native';
 import Picker from 'react-native-picker-select';
-import FlightData from '../types/FlightData';
-import Airport from '../types/Airport';
-import { BE_FLIGHT_HOST } from '@env';
 import axios from 'axios';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { BE_FLIGHT_HOST } from '@env';
+import FlightData from '../types/FlightData';
+import Airport from '../types/Airport';
 
-function FlightForm() {
-    const navigation = useNavigation();
+function FlightForm({ route, navigation }: any) {
+    const { flightData } = route?.params || {};
     const [airports, setAirports] = useState<Airport[]>([]);
+    const [filteredDepartureAirports, setFilteredDepartureAirports] = useState<Airport[]>([]);
+    const [filteredArrivalAirports, setFilteredArrivalAirports] = useState<Airport[]>([]);
     const [departure, setDeparture] = useState<FlightData | null>(null);
     const [arrival, setArrival] = useState<FlightData | null>(null);
     const [flightDate, setFlightDate] = useState<Date>(new Date());
     const [searchTriggered, setSearchTriggered] = useState(false);
     const [retrievedFlights, setRetrievedFlights] = useState<FlightData[]>([]);
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [originAirportSearch, setOriginAirportSearch] = useState('');
+    const [destinationAirportSearch, setDestinationAirportSearch] = useState('');
 
     useEffect(() => {
         const fetchAirports = async () => {
@@ -25,17 +28,30 @@ function FlightForm() {
                 const sortedAirports = response.data.sort((a: Airport, b: Airport) =>
                     a.airportName.localeCompare(b.airportName));
                 setAirports(sortedAirports);
+                setFilteredDepartureAirports(sortedAirports);
+                setFilteredArrivalAirports(sortedAirports);
             } catch (error) {
-                console.error('Error fetching airports:', error);
+                ToastAndroid.show('Cannot connect to server', ToastAndroid.SHORT);
             }
         };
 
         fetchAirports();
     }, []);
 
+    useEffect(() => {
+        const filteredDepartures = airports.filter((airport) =>
+            airport.airportName.toLowerCase().includes(originAirportSearch.toLowerCase())
+        );
+        setFilteredDepartureAirports(filteredDepartures);
+
+        const filteredArrivals = airports.filter((airport) =>
+            airport.airportName.toLowerCase().includes(destinationAirportSearch.toLowerCase())
+        );
+        setFilteredArrivalAirports(filteredArrivals);
+    }, [originAirportSearch, destinationAirportSearch, airports]);
+
     const handleSearch = async () => {
         setSearchTriggered(true);
-
         const formattedDate = flightDate.toISOString().slice(0, 10);
         try {
             const response = await axios.get(`${BE_FLIGHT_HOST}/api/flight-data/flights`, {
@@ -49,8 +65,8 @@ function FlightForm() {
             response.data.length === 0 ? ToastAndroid.show("No flights found", ToastAndroid.SHORT) : setRetrievedFlights(response.data);
         } catch (err) {
             console.error(err);
+            ToastAndroid.show("Error occurred while fetching airports", ToastAndroid.SHORT);
         }
-
     };
 
     const onDateChange = (event: any, selectedDate?: Date) => {
@@ -60,11 +76,19 @@ function FlightForm() {
         }
     };
 
+    const handleSaveFlightForUser = () => {
+
+    }
+
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.header}>Search Flight</Text>
+            <Text style={styles.label}>Origin airport</Text>
+            <TextInput
+                style={styles.input}
+                value={originAirportSearch}
+                onChangeText={(text) => setOriginAirportSearch(text)}
+            />
 
-            <Text style={styles.label}>Origin Airport</Text>
             <Picker
                 value={departure?.departure.iata}
                 onValueChange={(value) => {
@@ -78,14 +102,20 @@ function FlightForm() {
                         }
                     } as FlightData));
                 }}
-                items={airports.map((airport) => ({
+                items={filteredDepartureAirports.map((airport) => ({
                     label: `${airport.airportName} (${airport.iataCode})`,
                     value: airport.iataCode,
                 }))}
                 style={pickerSelectStyles}
             />
 
-            <Text style={styles.label}>Destination Airport</Text>
+            <Text style={styles.label}>Destination airport</Text>
+            <TextInput
+                style={styles.input}
+                value={destinationAirportSearch}
+                onChangeText={(text) => setDestinationAirportSearch(text)}
+            />
+
             <Picker
                 value={arrival?.arrival.iata}
                 onValueChange={(value) => {
@@ -99,24 +129,20 @@ function FlightForm() {
                         }
                     } as FlightData));
                 }}
-                items={airports.map((airport) => ({
+                items={filteredArrivalAirports.map((airport) => ({
                     label: `${airport.airportName} (${airport.iataCode})`,
                     value: airport.iataCode,
                 }))}
                 style={pickerSelectStyles}
-
             />
 
-            <View style={{ display: 'flex', justifyContent: 'space-between', flexDirection: 'row' }}>
+            <View style={styles.dateContainer}>
                 <Text style={styles.label}>Flight Date</Text>
-                {flightDate && (
-                    <Text style={styles.label}>
-                        {flightDate.toLocaleDateString()}
-                    </Text>
-                )}
+                <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                    <Text style={styles.label}>{flightDate.toLocaleDateString()}</Text>
+                </TouchableOpacity>
             </View>
 
-            <Button title="Select Date" onPress={() => setShowDatePicker(true)} />
             {showDatePicker && (
                 <DateTimePicker
                     value={flightDate}
@@ -133,12 +159,12 @@ function FlightForm() {
                     <Text style={styles.text}>{flight.airline.name || "N/A"}</Text>
                     <Text style={styles.text}>Origin: {flight.departure?.airport || "N/A"}</Text>
                     <Text style={styles.text}>Destination: {flight.arrival?.airport || "N/A"}</Text>
-                    <Button title="Add to your flights" onPress={() => { }} />
+                    <Button title="Add to your flights" onPress={() => handleSaveFlightForUser()} />
                 </View>
             ))}
         </ScrollView>
     );
-};
+}
 
 const pickerSelectStyles = StyleSheet.create({
     inputAndroid: {
@@ -147,12 +173,11 @@ const pickerSelectStyles = StyleSheet.create({
         paddingVertical: 8,
         borderWidth: 0.5,
         borderColor: 'gray',
-        borderRadius: 8,
         color: 'black',
         paddingRight: 30,
         marginBottom: 20,
+        backgroundColor: '#DBDBDB'
     },
-
 });
 
 const styles = StyleSheet.create({
@@ -160,15 +185,18 @@ const styles = StyleSheet.create({
         padding: 20,
         backgroundColor: '#fff',
     },
-    header: {
-        fontSize: 24,
-        marginBottom: 20,
-        textAlign: 'center',
-    },
     label: {
         fontSize: 18,
         fontWeight: '600',
         marginBottom: 10,
+        color: 'black'
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 20,
         color: 'black'
     },
     text: {
@@ -182,10 +210,11 @@ const styles = StyleSheet.create({
         borderColor: '#ccc',
         borderRadius: 10,
     },
-    icon: {
-        width: 40,
-        height: 40,
-        alignSelf: 'center',
+    dateContainer: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        flexDirection: 'column',
+        marginBottom: 20,
     },
 });
 

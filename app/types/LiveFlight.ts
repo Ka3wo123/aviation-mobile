@@ -6,6 +6,5 @@ export default interface LiveFlight {
     direction: number,
     speedHorizontal: number,
     speedVertical: number,
-    isGorund: boolean
-    
+    isGorund: boolean 
 }

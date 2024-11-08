@@ -9,4 +9,4 @@ export default interface UserFlight {
     departureGate: string,
     arrivalTerminal: string,
     arrivalGate: string
-}
+};

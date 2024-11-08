@@ -9,4 +9,4 @@ export default interface City {
     longitude: string,
     cityName: string,
     timezone: string
-}
+};

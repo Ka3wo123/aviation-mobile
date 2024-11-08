@@ -1,7 +1,7 @@
-import Airline from "./Airline";
-import Arrival from "./Arrival";
-import Departure from "./Departure";
-import LiveFlight from "./LiveFlight";
+import Airline from './Airline';
+import Arrival from './Arrival';
+import Departure from './Departure';
+import LiveFlight from './LiveFlight';
 
 export default interface FlighData {
     flightDate: string,
@@ -11,4 +11,4 @@ export default interface FlighData {
     airline: Airline,
     cityName: string,
     liveFlight: LiveFlight
-}
+};

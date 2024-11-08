@@ -12,4 +12,4 @@ export default interface Arrival {
     actual: string,
     estimatedRunway: string,
     acutalRunway: string
-}
+};

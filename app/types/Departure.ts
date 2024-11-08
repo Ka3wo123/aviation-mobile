@@ -11,4 +11,4 @@ export default interface Departure {
     actual: string,
     estimatedRunway: string,
     actualRunway: string
-}
+};

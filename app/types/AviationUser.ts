@@ -5,4 +5,4 @@ export interface AviationUser {
     password: string,
     phoneNumber?: string | undefined,
     age?: number | undefined
-}
+};

@@ -7,4 +7,5 @@ export default interface Airport {
     iataCode: string;
     countryName: string;
     phoneNumber?: string;
-  }
+  };
+  
