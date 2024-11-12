@@ -1,19 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ToastAndroid, ScrollView } from 'react-native';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import UserFlight from '../types/UserFlight';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BE_USER_HOST } from '@env';
 import { useFocusEffect } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
+import { NoInternetView } from './NoInternet';
+import { NoContent } from './NoContent';
 
 const CACHE_KEY = "@user_flights_cache";
+
+const Tab = createMaterialTopTabNavigator();
 
 const YourFlightsScreen = () => {
     const [flights, setFlights] = useState<UserFlight[]>([]);
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [isConnected, setIsConnected] = useState<boolean | null>(true);
+
+    const [currentFlights, setCurrentFlights] = useState<UserFlight[]>([]);
+    const [archivedFlights, setArchivedFlights] = useState<UserFlight[]>([]);
 
     useFocusEffect(
         useCallback(() => {
@@ -52,7 +60,7 @@ const YourFlightsScreen = () => {
                     setFlights(response.data);
                     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(response.data));
                 } catch (err) {
-                    console.error(err);
+                    console.error('Error:', err);
                     ToastAndroid.show(`Error while fetching ${userEmail}'s flights`, ToastAndroid.SHORT);
                 }
             } else {
@@ -77,32 +85,59 @@ const YourFlightsScreen = () => {
         }
     };
 
+    useEffect(() => {
+        const today = new Date();
+        const current = flights.filter(flight => new Date(flight.flightDate) >= today);
+        const archived = flights.filter(flight => new Date(flight.flightDate) < today);
+
+        setCurrentFlights(current);
+        setArchivedFlights(archived);
+    }, [flights]);
+
     return (
-        <ScrollView style={styles.container}>
-            {!isConnected && (
-                <View style={styles.offlineContainer}>
-                    <Text style={styles.offlineText}>You are offline. Showing cached flights.</Text>
-                </View>
-            )}
-            {flights.length > 0 ? (
-                flights.map((flight) => (
-                    <View style={styles.card} key={flight.id}>
-                        <Text style={styles.airline}>{flight.airline}</Text>
-                        <Text style={styles.flightDetail}>Departure: {flight.departureAirport}</Text>
-                        <Text style={styles.flightDetail}>Arrival: {flight.arrivalAirport}</Text>
-                        <Text style={styles.flightDetail}>Flight Date: {new Date(flight.flightDate).toLocaleString()}</Text>
-                        <Text style={styles.flightDetail}>Departure Terminal: {flight.departureTerminal}</Text>
-                        <Text style={styles.flightDetail}>Arrival Terminal: {flight.arrivalTerminal}</Text>
-                        <Text style={styles.flightDetail}>Departure Gate: {flight.departureGate}</Text>
-                        <Text style={styles.flightDetail}>Arrival Gate: {flight.arrivalGate}</Text>
-                    </View>
-                ))
-            ) : (
-                <Text style={{color: 'black'}}>No flights found</Text>
-            )}
-        </ScrollView>
+        <Tab.Navigator>
+            <Tab.Screen name="Current Flights" options={{
+                
+                tabBarShowLabel: true,
+                tabBarLabelStyle: { color: 'white' },
+            }}>
+                {() => (
+                    <FlightList flights={currentFlights} isConnected={isConnected} />
+                )}
+            </Tab.Screen>
+            <Tab.Screen name="Archived Flights" options={{
+            }}>
+                {() => (
+                    <FlightList flights={archivedFlights} isConnected={isConnected} />
+                )}
+            </Tab.Screen>
+        </Tab.Navigator>
     );
 };
+
+const FlightList = ({ flights, isConnected }: { flights: UserFlight[], isConnected: boolean | null }) => (
+    <ScrollView style={styles.container}>
+        {!isConnected && (
+            <NoInternetView text="To be up to date with your flights, connect to the internet." />
+        )}
+        {flights.length > 0 ? (
+            flights.map((flight) => (
+                <View style={styles.card} key={flight.id}>
+                    <Text style={styles.airline}>{flight.airline}</Text>
+                    <Text style={styles.flightDetail}>Departure: {flight.departureAirport}</Text>
+                    <Text style={styles.flightDetail}>Arrival: {flight.arrivalAirport}</Text>
+                    <Text style={styles.flightDetail}>Flight Date: {new Date(flight.flightDate).toLocaleString()}</Text>
+                    <Text style={styles.flightDetail}>Departure Terminal: {flight.departureTerminal}</Text>
+                    <Text style={styles.flightDetail}>Arrival Terminal: {flight.arrivalTerminal}</Text>
+                    <Text style={styles.flightDetail}>Departure Gate: {flight.departureGate}</Text>
+                    <Text style={styles.flightDetail}>Arrival Gate: {flight.arrivalGate}</Text>
+                </View>
+            ))
+        ) : (
+            <NoContent text='You have no current flights.' />
+        )}
+    </ScrollView>
+);
 
 const styles = StyleSheet.create({
     container: {
@@ -131,17 +166,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#333',
         marginBottom: 4,
-    },
-    offlineContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    offlineText: {
-        fontSize: 16,
-        color: 'red',
-        textAlign: 'center',
     },
 });
 

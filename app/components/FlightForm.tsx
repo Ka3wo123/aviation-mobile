@@ -6,6 +6,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { BE_FLIGHT_HOST } from '@env';
 import FlightData from '../types/FlightData';
 import Airport from '../types/Airport';
+import NetInfo from '@react-native-community/netinfo';
+import { NoInternetView } from './NoInternet';
 
 function FlightForm({ route, navigation }: any) {
     const { flightData } = route?.params || {};
@@ -20,6 +22,15 @@ function FlightForm({ route, navigation }: any) {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [originAirportSearch, setOriginAirportSearch] = useState('');
     const [destinationAirportSearch, setDestinationAirportSearch] = useState('');
+    const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected);
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         const fetchAirports = async () => {
@@ -33,10 +44,13 @@ function FlightForm({ route, navigation }: any) {
             } catch (error) {
                 ToastAndroid.show('Cannot connect to server', ToastAndroid.SHORT);
             }
+
         };
 
-        fetchAirports();
-    }, []);
+        if (isConnected) {
+            fetchAirports();
+        }
+    }, [isConnected]);
 
     useEffect(() => {
         const filteredDepartures = airports.filter((airport) =>
@@ -69,6 +83,7 @@ function FlightForm({ route, navigation }: any) {
         }
     };
 
+
     const onDateChange = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (selectedDate) {
@@ -82,6 +97,7 @@ function FlightForm({ route, navigation }: any) {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
+            {!isConnected && <NoInternetView text='To search flights connect with Internet.'></NoInternetView>}
             <Text style={styles.label}>Origin airport</Text>
             <TextInput
                 style={styles.input}
@@ -152,7 +168,7 @@ function FlightForm({ route, navigation }: any) {
                 />
             )}
 
-            <Button title="Search" onPress={handleSearch} />
+            <Button title="Search" onPress={handleSearch} disabled={!isConnected} />
 
             {searchTriggered && retrievedFlights.length > 0 && retrievedFlights.map((flight, index) => (
                 <View key={index} style={styles.flightContainer}>

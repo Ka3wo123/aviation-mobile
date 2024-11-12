@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SafeAreaView, TouchableOpacity, Text, Modal, View, TextInput, StyleSheet, ScrollView, ActivityIndicator, ToastAndroid, Dimensions } from "react-native";
+import { SafeAreaView, TouchableOpacity, Text, Modal, View, TextInput, StyleSheet, ScrollView, ActivityIndicator, ToastAndroid, Dimensions, LogBox } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 import axios from "axios";
 import Airport from "../types/Airport";
@@ -9,10 +9,13 @@ import { BE_FLIGHT_HOST } from '@env';
 import FlighData from "../types/FlightData";
 import Geolocation from '@react-native-community/geolocation';
 import { useNavigation } from "@react-navigation/native";
+import NetInfo from '@react-native-community/netinfo';
+import { NoInternetView } from "./NoInternet";
 
 
 const { width, height } = Dimensions.get('window');
 
+LogBox.ignoreLogs(["Warning"]);
 export default function MapScreen() {
     const navigation = useNavigation();
     const [airports, setAirports] = useState<Airport[]>([]);
@@ -25,6 +28,15 @@ export default function MapScreen() {
     const [departures, setDepartures] = useState<FlighData[]>([]);
     const [dataType, setDataType] = useState<'arrivals' | 'departures' | null>(null);
     const [userLocation, setUserLocation] = useState<Region | null>(null);
+    const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected);
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
 
@@ -57,19 +69,25 @@ export default function MapScreen() {
             }
         };
 
-        fetchAirports();
-    }, []);
+        if (isConnected) {
+            fetchAirports();
+        }
+
+    }, [isConnected]);
 
     const handleMarkerPress = async (airport: Airport) => {
         setSelectedAirport(airport);
 
-        try {
-            const responseArrivals = await axios.get(`${BE_FLIGHT_HOST}/api/flight-data/arrivals/${airport.iataCode}`);
-            const responseDepartures = await axios.get(`${BE_FLIGHT_HOST}/api/flight-data/departures/${airport.iataCode}`);
-            setArrivals(responseArrivals.data);
-            setDepartures(responseDepartures.data);
-        } catch (error) {
-            console.error(error);
+        if(isConnected) {
+
+            try {
+                const responseArrivals = await axios.get(`${BE_FLIGHT_HOST}/api/flight-data/arrivals/${airport.iataCode}`);
+                const responseDepartures = await axios.get(`${BE_FLIGHT_HOST}/api/flight-data/departures/${airport.iataCode}`);
+                setArrivals(responseArrivals.data);
+                setDepartures(responseDepartures.data);
+            } catch (error) {
+                console.error(error);
+            }
         }
     };
 
@@ -142,6 +160,8 @@ export default function MapScreen() {
                             />
                         ))}
                     </MapView>
+
+                    {!isConnected && <NoInternetView text="To load airports connect with Internet."></NoInternetView>}
 
                     {selectedAirport && (
                         <View style={styles.buttonContainer}>

@@ -5,8 +5,7 @@ const HomeScreen = ({ navigation }: any) => {
   const features = [
     { id: '1', title: 'Airlines', description: 'Get familiar with airlines you want to fly.', screen: 'AirlinesScreen', image: require('../assets/images/airlines.jpg') },
     { id: '2', title: 'Airports Map', description: 'Find airports worldwide.', screen: 'Airports Map', image: require('../assets/images/airports_map.png') },
-    { id: '3', title: 'Flights', description: 'Track real-time flight information.', screen: 'FlightsScreen', image: require('../assets/images/flights.jpg') },
-    { id: '4', title: 'Tickets', description: 'Find your flight to your destination.', screen: 'Flight search', image: require('../assets/images/airline-tickets.webp') },
+    { id: '4', title: 'Flights', description: 'Find your flight to your destination.', screen: 'Flight search', image: require('../assets/images/airline-tickets.webp') },
   ];
 
   const renderCard = ({ item }: any) => (
