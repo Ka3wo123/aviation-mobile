@@ -3,7 +3,12 @@ import Arrival from './Arrival';
 import Departure from './Departure';
 import LiveFlight from './LiveFlight';
 
-export default interface FlighData {
+export type FlightId = {
+    $oid: string, 
+}
+
+export default interface FlightData {
+    id: FlightId,
     flightDate: string,
     flightStatus: string,
     departure: Departure,

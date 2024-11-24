@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ToastAndroid, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ToastAndroid, ScrollView, RefreshControl } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import UserFlight from '../types/UserFlight';
 import axios from 'axios';
@@ -19,6 +19,7 @@ const YourFlightsScreen = () => {
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [isConnected, setIsConnected] = useState<boolean | null>(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     const [currentFlights, setCurrentFlights] = useState<UserFlight[]>([]);
     const [archivedFlights, setArchivedFlights] = useState<UserFlight[]>([]);
@@ -48,29 +49,25 @@ const YourFlightsScreen = () => {
         return () => unsubscribe();
     }, []);
 
-    useEffect(() => {
-        const fetchFlights = async () => {
-            if (userEmail && accessToken && isConnected) {
-                try {
-                    const response = await axios.get(`${BE_USER_HOST}/api/user/${userEmail}/flights`, {
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                        },
-                    });
-                    setFlights(response.data);
-                    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(response.data));
-                } catch (err) {
-                    console.error('Error:', err);
-                    ToastAndroid.show(`Error while fetching ${userEmail}'s flights`, ToastAndroid.SHORT);
-                }
-            } else {
-                console.log("userEmail, accessToken, or network connection is missing. Loading cached flights...");
-                loadCachedFlights();
+    const fetchFlights = async () => {
+        if (userEmail && accessToken && isConnected) {
+            try {
+                const response = await axios.get(`${BE_USER_HOST}/api/user/${userEmail}/flights`, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                });
+                setFlights(response.data);
+                await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(response.data));
+            } catch (err) {
+                console.error('Error:', err);
+                ToastAndroid.show(`Error while fetching ${userEmail}'s flights`, ToastAndroid.SHORT);
             }
-        };
-
-        fetchFlights();
-    }, [userEmail, accessToken, isConnected]);
+        } else {
+            console.log("userEmail, accessToken, or network connection is missing. Loading cached flights...");
+            loadCachedFlights();
+        }
+    };
 
     const loadCachedFlights = async () => {
         try {
@@ -86,6 +83,16 @@ const YourFlightsScreen = () => {
     };
 
     useEffect(() => {
+        fetchFlights();
+    }, [userEmail, accessToken, isConnected]);
+
+    const refreshFlights = async () => {
+        setRefreshing(true);
+        await fetchFlights();
+        setRefreshing(false);
+    };
+
+    useEffect(() => {
         const today = new Date();
         const current = flights.filter(flight => new Date(flight.flightDate) >= today);
         const archived = flights.filter(flight => new Date(flight.flightDate) < today);
@@ -95,28 +102,43 @@ const YourFlightsScreen = () => {
     }, [flights]);
 
     return (
-        <Tab.Navigator>
-            <Tab.Screen name="Current Flights" options={{
-                
-                tabBarShowLabel: true,
-                tabBarLabelStyle: { color: 'white' },
-            }}>
-                {() => (
-                    <FlightList flights={currentFlights} isConnected={isConnected} />
+        <Tab.Navigator
+            screenOptions={{
+                tabBarLabelStyle: {
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                    color: '#000',
+                },
+                tabBarStyle: {
+                    backgroundColor: '#fff',
+                },
+                tabBarIndicatorStyle: {
+                    backgroundColor: '#000',
+                    height: 3,
+                },
+            }}
+        >
+            <Tab.Screen
+                name="Current Flights"
+                children={() => (
+                    <FlightList flights={currentFlights} isConnected={isConnected} onRefresh={refreshFlights} refreshing={refreshing} />
                 )}
-            </Tab.Screen>
-            <Tab.Screen name="Archived Flights" options={{
-            }}>
-                {() => (
-                    <FlightList flights={archivedFlights} isConnected={isConnected} />
+            />
+            <Tab.Screen
+                name="Archived Flights"
+                children={() => (
+                    <FlightList flights={archivedFlights} isConnected={isConnected} onRefresh={refreshFlights} refreshing={refreshing} />
                 )}
-            </Tab.Screen>
+            />
         </Tab.Navigator>
     );
 };
 
-const FlightList = ({ flights, isConnected }: { flights: UserFlight[], isConnected: boolean | null }) => (
-    <ScrollView style={styles.container}>
+const FlightList = ({ flights, isConnected, onRefresh, refreshing }: { flights: UserFlight[], isConnected: boolean | null, onRefresh: () => void, refreshing: boolean }) => (
+    <ScrollView
+        style={styles.container}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
         {!isConnected && (
             <NoInternetView text="To be up to date with your flights, connect to the internet." />
         )}

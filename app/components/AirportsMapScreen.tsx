@@ -6,7 +6,7 @@ import Airport from "../types/Airport";
 import { DrawerLayoutAndroid } from 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BE_FLIGHT_HOST } from '@env';
-import FlighData from "../types/FlightData";
+import FlightData from "../types/FlightData";
 import Geolocation from '@react-native-community/geolocation';
 import { useNavigation } from "@react-navigation/native";
 import NetInfo from '@react-native-community/netinfo';
@@ -24,8 +24,8 @@ export default function MapScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [searchCountry, setSearchCountry] = useState('');
-    const [arrivals, setArrivals] = useState<FlighData[]>([]);
-    const [departures, setDepartures] = useState<FlighData[]>([]);
+    const [arrivals, setArrivals] = useState<FlightData[]>([]);
+    const [departures, setDepartures] = useState<FlightData[]>([]);
     const [dataType, setDataType] = useState<'arrivals' | 'departures' | null>(null);
     const [userLocation, setUserLocation] = useState<Region | null>(null);
     const [isConnected, setIsConnected] = useState<boolean | null>(null);
@@ -104,7 +104,7 @@ export default function MapScreen() {
         filterAirports();
     }, [searchText, searchCountry]);
 
-    const handleDepartureClick = (flightData: FlighData) => {
+    const handleDepartureClick = (flightData: FlightData) => {
         // @ts-ignore
         navigation.navigate('Flight search', { flightData: flightData });
 

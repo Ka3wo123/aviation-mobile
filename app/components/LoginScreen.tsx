@@ -14,7 +14,6 @@ import { BE_AUTH_HOST, BE_USER_HOST } from "@env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 
-const Tab = createMaterialTopTabNavigator();
 
 const LoginForm = ({ navigation }: any) => {
     const [email, setEmail] = useState<string>("");
@@ -68,6 +67,9 @@ const LoginForm = ({ navigation }: any) => {
                     secureTextEntry
                 />
             </View>
+            <TouchableOpacity style={styles.forgotPasswordLink}>
+                <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
@@ -102,7 +104,7 @@ const RegisterForm = () => {
 
     const handleRegister = async () => {
         try {
-            const response = await axios.post(`${BE_USER_HOST}/api/user`, {
+            await axios.post(`${BE_USER_HOST}/api/user`, {
                 name: registerName,
                 surname: registerSurname,
                 email: registerEmail,
@@ -167,21 +169,25 @@ const RegisterForm = () => {
                 {registerErrors.password && <Text style={styles.errorText}>{registerErrors.password}</Text>}
             </View>
 
-            <TextInput
-                style={styles.input}
-                placeholder="Phone number"
-                value={registerPhoneNumber}
-                onChangeText={setRegisterPhoneNumber}
-                keyboardType="phone-pad"
-            />
+            <View style={styles.inputContainer}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Phone number"
+                    value={registerPhoneNumber}
+                    onChangeText={setRegisterPhoneNumber}
+                    keyboardType="phone-pad"
+                />
+            </View>
 
-            <TextInput
-                style={styles.input}
-                placeholder="Age"
-                value={registerAge}
-                onChangeText={setRegisterAge}
-                keyboardType="numeric"
-            />
+            <View style={styles.inputContainer}>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Age"
+                    value={registerAge}
+                    onChangeText={setRegisterAge}
+                    keyboardType="numeric"
+                />
+            </View>
 
             <TouchableOpacity style={styles.button} onPress={handleRegister}>
                 <Text style={styles.buttonText}>Register</Text>
@@ -190,31 +196,33 @@ const RegisterForm = () => {
     );
 };
 
-export default function LoginScreen() {
+const Tab = createMaterialTopTabNavigator();
+
+export default function LoginScreen() {    
     return (
-        <Tab.Navigator
+        <Tab.Navigator                    
             screenOptions={{
                 tabBarLabelStyle: { color: 'white', fontSize: 16 },
                 tabBarStyle: {
                     backgroundColor: '#007bff',
                     elevation: 10,
-                    height: 50,
+                    height: 50
                 },
                 tabBarIndicatorStyle: {
                     backgroundColor: 'white',
                     height: 2,
-                },
-                tabBarActiveTintColor: 'white',
-                tabBarInactiveTintColor: '#ccc',
+                }
             }}
         >
             <Tab.Screen
                 name="Login"
                 component={LoginForm}
+                options={{ tabBarLabel: 'Login'}}
             />
             <Tab.Screen
                 name="Register"
                 component={RegisterForm}
+                options={{ tabBarLabel: 'Register' }}
             />
         </Tab.Navigator>
     );
@@ -272,5 +280,14 @@ const styles = StyleSheet.create({
         right: 0,
         marginRight: 10,
         fontSize: 12,
+    },
+    forgotPasswordLink: {
+        alignSelf: 'center',
+        marginVertical: 15,
+
+    },
+    forgotPasswordText: {
+        color: "#007bff",
+        textDecorationLine: "underline",
     },
 });
