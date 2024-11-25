@@ -135,6 +135,7 @@ const YourFlightsScreen = () => {
 };
 
 const FlightList = ({ flights, isConnected, onRefresh, refreshing }: { flights: UserFlight[], isConnected: boolean | null, onRefresh: () => void, refreshing: boolean }) => (
+
     <ScrollView
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -156,7 +157,7 @@ const FlightList = ({ flights, isConnected, onRefresh, refreshing }: { flights: 
                 </View>
             ))
         ) : (
-            <NoContent text='You have no current flights.' />
+            <NoContent text='You have no flights yet.' />
         )}
     </ScrollView>
 );

@@ -104,9 +104,9 @@ export default function MapScreen() {
         filterAirports();
     }, [searchText, searchCountry]);
 
-    const handleDepartureClick = (flightData: FlightData) => {
+    const handleDepartureClick = (flightData: FlightData | null) => {        
         // @ts-ignore
-        navigation.navigate('Flight search', { flightData: flightData });
+        navigation.navigate('Flight search', { flightData: flightData });        
 
     };
 

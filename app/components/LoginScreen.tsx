@@ -13,11 +13,14 @@ import axios from "axios";
 import { BE_AUTH_HOST, BE_USER_HOST } from "@env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { useAuth } from "../AuthContext";
+import { Role } from "../types/Role";
 
 
 const LoginForm = ({ navigation }: any) => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
+    const { logIn } = useAuth();
 
     const handleLogin = async () => {
         try {
@@ -31,9 +34,11 @@ const LoginForm = ({ navigation }: any) => {
             await AsyncStorage.setItem("@access_token", accessToken);
             await AsyncStorage.setItem("@user_email", email);
 
+            logIn();
+
             ToastAndroid.show("Successfully logged in", ToastAndroid.SHORT);
             // @ts-ignore
-            navigation.navigate("Home");
+            navigation.navigate("Home")
         } catch (err: unknown) {
             ToastAndroid.show("Invalid credentials", ToastAndroid.SHORT);
         }
@@ -111,6 +116,7 @@ const RegisterForm = () => {
                 password: registerPassword,
                 phoneNumber: registerPhoneNumber,
                 age: registerAge ? parseInt(registerAge, 10) : null,
+                role: Role.USER
             });
             ToastAndroid.show("Registration Successful", ToastAndroid.SHORT);
         } catch (error) {

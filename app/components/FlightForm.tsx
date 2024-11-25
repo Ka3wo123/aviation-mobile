@@ -8,7 +8,6 @@ import FlightData from '../types/FlightData';
 import Airport from '../types/Airport';
 import NetInfo from '@react-native-community/netinfo';
 import { NoInternetView } from './NoInternet';
-import FlightSubmission from '../types/FlightSubmission';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 
@@ -19,7 +18,7 @@ function FlightForm({ route, navigation }: any) {
     const [filteredArrivalAirports, setFilteredArrivalAirports] = useState<Airport[]>([]);
     const [departure, setDeparture] = useState<FlightData | null>(flightData || null);
     const [arrival, setArrival] = useState<FlightData | null>(flightData || null);
-    const [flightDate, setFlightDate] = useState<Date>(new Date());
+    const [flightDate, setFlightDate] = useState<Date>(new Date(flightData.flightDate) || new Date());
     const [retrievedFlights, setRetrievedFlights] = useState<FlightData[]>([]);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [originAirportSearch, setOriginAirportSearch] = useState('');
@@ -29,7 +28,7 @@ function FlightForm({ route, navigation }: any) {
     useEffect(() => {
         const unsubscribe = NetInfo.addEventListener(state => {
             setIsConnected(state.isConnected);
-        });
+        });        
 
         return () => unsubscribe();
     }, []);
@@ -102,7 +101,7 @@ function FlightForm({ route, navigation }: any) {
         }
 
         try {
-            const response = await axios.post(`${BE_USER_HOST}/api/user/flight`, {
+            await axios.post(`${BE_USER_HOST}/api/user/flight`, {
                 email: email || '',
                 flight: {
                     airline: flight.airline.name,
